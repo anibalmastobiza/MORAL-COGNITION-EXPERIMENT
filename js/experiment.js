@@ -1,3 +1,7 @@
+{
+type: uploaded file
+fileName: anibalmastobiza/moral-cognition-experiment/MORAL-COGNITION-EXPERIMENT-04dcee08f92eb155bc98f265b463dfe3ea3e4a6d/js/experiment.js
+fullContent:
 // Moral Explaining Away — minimal, dependency-free
 // All responses required to proceed.
 
@@ -143,6 +147,8 @@ function likertRow(selectedValue, onSelect){
   for(let v=LIKERT_MIN; v<=LIKERT_MAX; v++){
     const c = el(
       "button",
+      // Aquí se aplica la clase "selected" si coincide con el valor, 
+      // lo cual ahora activará el estilo de fondo negro definido en CSS.
       {class:"choice" + (v===selectedValue ? " selected" : ""), type:"button"},
       [text(String(v))]
     );
@@ -361,4 +367,5 @@ function renderDone(){
 
   // Submission happens in submit.js
   window.__SUBMIT_STUDY__();
+}
 }
