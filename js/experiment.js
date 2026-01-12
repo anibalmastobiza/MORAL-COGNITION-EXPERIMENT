@@ -1,7 +1,3 @@
-{
-type: uploaded file
-fileName: anibalmastobiza/moral-cognition-experiment/MORAL-COGNITION-EXPERIMENT-04dcee08f92eb155bc98f265b463dfe3ea3e4a6d/js/experiment.js
-fullContent:
 // Moral Explaining Away — minimal, dependency-free
 // All responses required to proceed.
 
@@ -25,13 +21,13 @@ const LIKERT_MAX = 7;
 
 // --- Prompts (centralized to avoid mismatched cache keys) ---
 const PROMPTS = {
-  causalClin: "How much did the clinician’s decision cause the patient’s death?",
-  causalAI: "How much did the AI system cause the patient’s death?",
+  causalClin: "How much did the clinician's decision cause the patient's death?",
+  causalAI: "How much did the AI system cause the patient's death?",
   blameClin: "How blameworthy is the clinician?",
   blameOrg: "How blameworthy is the hospital/organization for deploying this AI system?",
-  cfClin: "If the clinician had acted differently, the patient’s death would have been avoided.",
-  cfPolicy: "If the organizational policy had NOT been in place, the patient’s death would have been avoided.",
-  cfBroad: "If broader institutional constraints had been different, the patient’s death would have been avoided."
+  cfClin: "If the clinician had acted differently, the patient's death would have been avoided.",
+  cfPolicy: "If the organizational policy had NOT been in place, the patient's death would have been avoided.",
+  cfBroad: "If broader institutional constraints had been different, the patient's death would have been avoided."
 };
 
 // Conditional counterfactual prompt: avoid asking about a policy that is absent.
@@ -44,48 +40,48 @@ const VIGNETTES = [
   // Negligent, Alt absent
   vignette("NA1","Negligent","AltAbsent",
     `A public hospital uses an AI triage tool to flag high-risk patients.
-A clinician sees an alert: “High risk—urgent evaluation recommended.”
+A clinician sees an alert: "High risk—urgent evaluation recommended."
 The clinician decides to postpone evaluation to clear other tasks.
-The patient’s condition worsens, and the patient dies.`),
+The patient's condition worsens, and the patient dies.`),
 
   vignette("NA2","Negligent","AltAbsent",
     `A clinic uses an AI system to prioritize follow-up calls.
-The system ranks a patient as “needs same-day follow-up.”
-A staff member notices the ranking but chooses not to call, thinking it is “probably fine.”
+The system ranks a patient as "needs same-day follow-up."
+A staff member notices the ranking but chooses not to call, thinking it is "probably fine."
 The patient later experiences a critical deterioration and dies.`),
 
   // Negligent, Alt present (SYSTEMIC INSTITUTIONAL FAILURE)
   vignette("NP1","Negligent","AltPresent",
     `A public hospital uses an AI triage tool to flag high-risk patients.
-A clinician sees an alert: “High risk—urgent evaluation recommended.”
+A clinician sees an alert: "High risk—urgent evaluation recommended."
 The clinician decides to postpone evaluation to clear other tasks.
 At the same time, the hospital is running an institutional cost-saving policy: staff were instructed to delay non-ICU evaluations during peak hours unless a supervisor approves.
-The patient’s condition worsens, and the patient dies.`),
+The patient's condition worsens, and the patient dies.`),
 
   vignette("NP2","Negligent","AltPresent",
     `A clinic uses an AI system to prioritize follow-up calls.
-The system ranks a patient as “needs same-day follow-up.”
-A staff member notices the ranking but chooses not to call, thinking it is “probably fine.”
+The system ranks a patient as "needs same-day follow-up."
+A staff member notices the ranking but chooses not to call, thinking it is "probably fine."
 Also, the organization recently reduced call-center staffing and implemented an unrealistic call quota that routinely makes same-day follow-up impossible.
 The patient later experiences a critical deterioration and dies.`),
 
   // Non-negligent, Alt absent
   vignette("GA1","GoodPractice","AltAbsent",
     `A public hospital uses an AI triage tool to flag high-risk patients.
-A clinician follows protocol: when the AI flags “High risk,” the clinician requests immediate evaluation.
-Despite this, the patient’s condition worsens, and the patient dies.`),
+A clinician follows protocol: when the AI flags "High risk," the clinician requests immediate evaluation.
+Despite this, the patient's condition worsens, and the patient dies.`),
 
   vignette("GA2","GoodPractice","AltAbsent",
     `A clinic uses an AI system to prioritize follow-up calls.
-A staff member follows protocol: when the system ranks “needs same-day follow-up,” they call immediately.
+A staff member follows protocol: when the system ranks "needs same-day follow-up," they call immediately.
 Despite this, the patient experiences a critical deterioration and dies.`),
 
   // Non-negligent, Alt present (SYSTEMIC INSTITUTIONAL FAILURE)
   vignette("GP1","GoodPractice","AltPresent",
     `A public hospital uses an AI triage tool to flag high-risk patients.
-A clinician follows protocol and requests immediate evaluation after an AI “High risk” flag.
+A clinician follows protocol and requests immediate evaluation after an AI "High risk" flag.
 However, the hospital is running an institutional cost-saving policy: staff were instructed to delay non-ICU evaluations during peak hours unless a supervisor approves.
-The patient’s condition worsens, and the patient dies.`),
+The patient's condition worsens, and the patient dies.`),
 
   vignette("GP2","GoodPractice","AltPresent",
     `A clinic uses an AI system to prioritize follow-up calls.
@@ -147,8 +143,6 @@ function likertRow(selectedValue, onSelect){
   for(let v=LIKERT_MIN; v<=LIKERT_MAX; v++){
     const c = el(
       "button",
-      // Aquí se aplica la clase "selected" si coincide con el valor, 
-      // lo cual ahora activará el estilo de fondo negro definido en CSS.
       {class:"choice" + (v===selectedValue ? " selected" : ""), type:"button"},
       [text(String(v))]
     );
@@ -367,5 +361,4 @@ function renderDone(){
 
   // Submission happens in submit.js
   window.__SUBMIT_STUDY__();
-}
 }
