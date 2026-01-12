@@ -1,19 +1,11 @@
 // Moral Explaining Away — minimal, dependency-free
 // All responses required to proceed.
 
-const APP = document.getElementById("app");
-const META = document.getElementById("meta");
-
 // ====== Prolific params (no end-code prompt) ======
 const urlParams = new URLSearchParams(window.location.search);
 const PROLIFIC_PID = urlParams.get("PROLIFIC_PID") || "";
 const STUDY_ID = urlParams.get("STUDY_ID") || "";
 const SESSION_ID = urlParams.get("SESSION_ID") || "";
-
-// Show minimal meta (optional)
-META.textContent = (PROLIFIC_PID || STUDY_ID || SESSION_ID)
-  ? `Session detected.`
-  : `Session parameters not detected (test mode).`;
 
 // ====== Study settings ======
 const LIKERT_MIN = 1;
@@ -112,8 +104,34 @@ const STATE = {
   demographics: {}
 };
 
+// Cache: vignette_id -> {prompt -> value}
+const SELECTION_CACHE = {};
+
+function cacheSelection(vid, prompt, val){
+  if(!SELECTION_CACHE[vid]) SELECTION_CACHE[vid] = {};
+  SELECTION_CACHE[vid][prompt] = val;
+}
+
+function hydrateSelections(vid, v){
+  const o = SELECTION_CACHE[vid] || {};
+  return {
+    causalClin: o[PROMPTS.causalClin] ?? null,
+    causalAI: o[PROMPTS.causalAI] ?? null,
+    blameClin: o[PROMPTS.blameClin] ?? null,
+    blameOrg: o[PROMPTS.blameOrg] ?? null,
+    cfClin: o[PROMPTS.cfClin] ?? null,
+    cfAlt: o[cfAltPromptFor(v)] ?? null,
+  };
+}
+
 // ====== Rendering helpers ======
-function clear(){ APP.innerHTML = ""; }
+function getApp(){ return document.getElementById("app"); }
+function getMeta(){ return document.getElementById("meta"); }
+
+function clear(){ 
+  const app = getApp();
+  if(app) app.innerHTML = ""; 
+}
 
 function el(tag, attrs={}, children=[]){
   const node = document.createElement(tag);
@@ -141,9 +159,10 @@ function button(label, onClick, primary=false){
 function likertRow(selectedValue, onSelect){
   const wrap = el("div", {class:"scale"});
   for(let v=LIKERT_MIN; v<=LIKERT_MAX; v++){
+    const isSelected = (v === selectedValue);
     const c = el(
       "button",
-      {class:"choice" + (v===selectedValue ? " selected" : ""), type:"button"},
+      {class: isSelected ? "choice selected" : "choice", type:"button"},
       [text(String(v))]
     );
     c.addEventListener("click", ()=>onSelect(v));
@@ -157,10 +176,16 @@ function requiredError(msg){
 }
 
 // ====== Steps ======
-render();
-
 function render(){
   clear();
+  
+  const meta = getMeta();
+  if(meta){
+    meta.textContent = (PROLIFIC_PID || STUDY_ID || SESSION_ID)
+      ? `Session detected.`
+      : `Session parameters not detected (test mode).`;
+  }
+  
   if(STATE.step === "consent") return renderConsent();
   if(STATE.step === "demographics") return renderDemographics();
   if(STATE.step === "trial") return renderTrial();
@@ -168,6 +193,7 @@ function render(){
 }
 
 function renderConsent(){
+  const app = getApp();
   const c = card([
     el("h2", {}, [text("Consent")]),
     el("p", {}, [text("You are invited to take part in a short anonymous study about judgments of cause and responsibility in healthcare decisions involving AI.")]),
@@ -179,19 +205,20 @@ function renderConsent(){
     ]),
   ]);
 
-  const agreeBtn = el("button", {class:"btn", type:"button"}, [text("I agree and want to participate")]);
-  agreeBtn.addEventListener("click", ()=>{
+  const agreeBtn = button("I agree and want to participate", ()=>{
     STATE.step = "demographics";
     render();
   });
 
-  APP.appendChild(c);
-  APP.appendChild(card([agreeBtn]));
+  app.appendChild(c);
+  app.appendChild(card([agreeBtn]));
 }
 
 function renderDemographics(){
-  const age = el("input", {type:"number", min:"18", max:"99", placeholder:"Age (18–99)", required:"true"});
-  const gender = el("select", {required:"true"}, [
+  const app = getApp();
+  
+  const age = el("input", {type:"number", min:"18", max:"99", placeholder:"Age (18–99)"});
+  const gender = el("select", {}, [
     el("option", {value:""}, [text("Gender (select)")]),
     el("option", {value:"woman"}, [text("Woman")]),
     el("option", {value:"man"}, [text("Man")]),
@@ -200,7 +227,7 @@ function renderDemographics(){
     el("option", {value:"other"}, [text("Other")]),
   ]);
 
-  const aiFamiliar = el("select", {required:"true"}, [
+  const aiFamiliar = el("select", {}, [
     el("option", {value:""}, [text("Familiarity with AI in healthcare (select)")]),
     el("option", {value:"1"}, [text("1 — Not at all familiar")]),
     el("option", {value:"2"}, [text("2")]),
@@ -229,10 +256,10 @@ function renderDemographics(){
     const f = aiFamiliar.value;
 
     if(!a || a<18 || a>99 || !g || !f){
-      clear();
-      APP.appendChild(content);
-      APP.appendChild(requiredError("Please answer all background questions to continue."));
-      APP.appendChild(card([button("Continue", ()=>renderDemographics(), true)]));
+      // Show error without full re-render
+      const existing = app.querySelector(".error");
+      if(existing) existing.remove();
+      app.appendChild(requiredError("Please answer all background questions to continue."));
       return;
     }
 
@@ -242,29 +269,16 @@ function renderDemographics(){
     render();
   }, true);
 
-  APP.appendChild(content);
-  APP.appendChild(card([next]));
+  app.appendChild(content);
+  app.appendChild(card([next]));
 }
 
 function renderTrial(){
+  const app = getApp();
   const v = STATE.vignettes[STATE.idx];
 
-  // Initialize from cache, if present
+  // Get cached selections for this vignette
   const cached = hydrateSelections(v.id, v);
-  let causalClin = cached.causalClin;
-  let causalAI = cached.causalAI;
-  let blameClin = cached.blameClin;
-  let blameOrg = cached.blameOrg;
-  let cfClin = cached.cfClin;
-  let cfAlt = cached.cfAlt;
-
-  function canProceed(){
-    return [causalClin, causalAI, blameClin, blameOrg, cfClin, cfAlt].every(x => x !== null);
-  }
-
-  function rerender(){
-    renderTrial(); // re-render for selection highlighting
-  }
 
   const vignetteCard = card([
     el("div", {class:"meta"}, [text(`Scenario ${STATE.idx+1} of ${STATE.vignettes.length}`)]),
@@ -272,19 +286,33 @@ function renderTrial(){
     el("p", {}, [text(v.text)]),
   ]);
 
+  // Build question card with current selections
   const qCard = card([
     el("h2", {}, [text("Your judgments")]),
-    qLikert(PROMPTS.causalClin, (val)=>{ causalClin=val; rerender(); }, causalClin, v.id),
-    qLikert(PROMPTS.causalAI, (val)=>{ causalAI=val; rerender(); }, causalAI, v.id),
-    qLikert(PROMPTS.blameClin, (val)=>{ blameClin=val; rerender(); }, blameClin, v.id),
-    qLikert(PROMPTS.blameOrg, (val)=>{ blameOrg=val; rerender(); }, blameOrg, v.id),
-    qLikert(PROMPTS.cfClin, (val)=>{ cfClin=val; rerender(); }, cfClin, v.id),
-    qLikert(cfAltPromptFor(v), (qval)=>{ cfAlt=qval; rerender(); }, cfAlt, v.id),
+    qLikert(PROMPTS.causalClin, "causalClin", cached.causalClin, v.id),
+    qLikert(PROMPTS.causalAI, "causalAI", cached.causalAI, v.id),
+    qLikert(PROMPTS.blameClin, "blameClin", cached.blameClin, v.id),
+    qLikert(PROMPTS.blameOrg, "blameOrg", cached.blameOrg, v.id),
+    qLikert(PROMPTS.cfClin, "cfClin", cached.cfClin, v.id),
+    qLikert(cfAltPromptFor(v), "cfAlt", cached.cfAlt, v.id),
   ]);
 
   const next = button(STATE.idx === STATE.vignettes.length-1 ? "Finish" : "Next", ()=>{
-    if(!canProceed()){
-      APP.appendChild(requiredError("Please answer every question to continue."));
+    // Re-check cached values
+    const current = hydrateSelections(v.id, v);
+    const allAnswered = [
+      current.causalClin, 
+      current.causalAI, 
+      current.blameClin, 
+      current.blameOrg, 
+      current.cfClin, 
+      current.cfAlt
+    ].every(x => x !== null);
+
+    if(!allAnswered){
+      const existing = app.querySelector(".error");
+      if(existing) existing.remove();
+      app.appendChild(requiredError("Please answer every question to continue."));
       return;
     }
 
@@ -292,18 +320,15 @@ function renderTrial(){
       prolific_pid: PROLIFIC_PID,
       study_id: STUDY_ID,
       session_id: SESSION_ID,
-
       vignette_id: v.id,
-      agent_condition: v.agent,     // Negligent vs GoodPractice
-      alt_condition: v.alt,         // AltPresent vs AltAbsent
-
-      causal_clinician: causalClin,
-      causal_ai: causalAI,
-      blame_clinician: blameClin,
-      blame_org: blameOrg,
-      counterfactual_clinician: cfClin,
-      counterfactual_alt: cfAlt,
-
+      agent_condition: v.agent,
+      alt_condition: v.alt,
+      causal_clinician: current.causalClin,
+      causal_ai: current.causalAI,
+      blame_clinician: current.blameClin,
+      blame_org: current.blameOrg,
+      counterfactual_clinician: current.cfClin,
+      counterfactual_alt: current.cfAlt,
       t: Date.now()
     });
 
@@ -314,51 +339,36 @@ function renderTrial(){
     render();
   }, true);
 
-  APP.appendChild(vignetteCard);
-  APP.appendChild(qCard);
-  APP.appendChild(card([next]));
+  app.appendChild(vignetteCard);
+  app.appendChild(qCard);
+  app.appendChild(card([next]));
 
-  function qLikert(prompt, onSelect, selected, vid){
+  function qLikert(prompt, cacheKey, selected, vid){
     const block = el("div", {}, [
       el("div", {class:"question"}, [text(prompt)]),
       el("div", {class:"help"}, [text("1 = Not at all, 7 = Very much")]),
       likertRow(selected, (val)=>{
         cacheSelection(vid, prompt, val);
-        onSelect(val);
+        // Re-render to show selection
+        render();
       })
     ]);
     return block;
   }
 }
 
-// Cache: vignette_id -> {prompt -> value}
-const SELECTION_CACHE = {};
-
-function cacheSelection(vid, prompt, val){
-  if(!SELECTION_CACHE[vid]) SELECTION_CACHE[vid] = {};
-  SELECTION_CACHE[vid][prompt] = val;
-}
-
-function hydrateSelections(vid, v){
-  const o = SELECTION_CACHE[vid] || {};
-  return {
-    causalClin: o[PROMPTS.causalClin] ?? null,
-    causalAI: o[PROMPTS.causalAI] ?? null,
-    blameClin: o[PROMPTS.blameClin] ?? null,
-    blameOrg: o[PROMPTS.blameOrg] ?? null,
-    cfClin: o[PROMPTS.cfClin] ?? null,
-    cfAlt: o[cfAltPromptFor(v)] ?? null,
-  };
-}
-
 function renderDone(){
+  const app = getApp();
   const c = card([
     el("h2", {}, [text("Submitting…")]),
     el("p", {}, [text("Please do not close this tab until submission completes.")]),
     el("p", {class:"help"}, [text("If this is a test, you can still complete without Prolific redirect.")])
   ]);
-  APP.appendChild(c);
+  app.appendChild(c);
 
   // Submission happens in submit.js
   window.__SUBMIT_STUDY__();
 }
+
+// ====== Initialize on DOM ready ======
+document.addEventListener("DOMContentLoaded", render);
