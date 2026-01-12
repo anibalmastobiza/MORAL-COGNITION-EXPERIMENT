@@ -1,7 +1,3 @@
-{
-type: uploaded file
-fileName: anibalmastobiza/moral-cognition-experiment/MORAL-COGNITION-EXPERIMENT-04dcee08f92eb155bc98f265b463dfe3ea3e4a6d/css/styles.css
-fullContent:
 :root{
   --bg:#ffffff;
   --text:#111;
@@ -82,13 +78,9 @@ h1{ margin:8px 0 6px; font-size:28px; }
   border:1px solid var(--line);
   background:#fff;
   cursor:pointer;
-  transition: all 0.2s ease; /* Suaviza el cambio de color */
+  transition: all 0.2s ease;
 }
 
-/* CAMBIO REALIZADO:
-   Ahora la opción seleccionada tiene fondo negro y texto blanco 
-   para que sea obvio que está marcada.
-*/
 .choice.selected{
   background: #111;
   color: #fff;
@@ -126,4 +118,3 @@ input, select{
   padding-top:14px;
 }
 .fineprint{ margin:0; color:var(--muted); font-size:13px; }
-}
