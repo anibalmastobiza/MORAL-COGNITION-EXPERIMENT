@@ -1,6 +1,6 @@
 // ====== Configure these two URLs ======
 const GOOGLE_SCRIPT_WEBAPP_URL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEBAPP_URL_HERE";
-const PROLIFIC_COMPLETION_URL = "PASTE_YOUR_PROLIFIC_COMPLETION_URL_HERE"; // no code prompt; redirect directly
+const PROLIFIC_COMPLETION_URL = "PASTE_YOUR_PROLIFIC_COMPLETION_URL_HERE";
 
 function postJSON(url, data){
   return fetch(url, {
@@ -13,8 +13,6 @@ function postJSON(url, data){
 
 window.__SUBMIT_STUDY__ = async function(){
   try{
-    // Package everything: demographics duplicated onto each row server-side if you prefer;
-    // here we send one payload.
     const payload = {
       study: "moral_explaining_away_v1",
       demographics: STATE.demographics,
@@ -24,7 +22,6 @@ window.__SUBMIT_STUDY__ = async function(){
     };
 
     if(GOOGLE_SCRIPT_WEBAPP_URL.includes("PASTE_")){
-      // Test mode fallback: show payload (no data loss)
       document.getElementById("app").innerHTML = `
         <div class="card">
           <h2>Test mode (no Google Script URL set)</h2>
@@ -41,7 +38,6 @@ window.__SUBMIT_STUDY__ = async function(){
       throw new Error("Submission failed: " + txt);
     }
 
-    // Redirect to Prolific completion URL (no asking for any code)
     if(PROLIFIC_COMPLETION_URL.includes("PASTE_")){
       document.getElementById("app").innerHTML = `
         <div class="card">
