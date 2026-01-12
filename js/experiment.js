@@ -217,7 +217,17 @@ function renderConsent(){
 function renderDemographics(){
   const app = getApp();
   
-  const age = el("input", {type:"number", min:"18", max:"99", placeholder:"Age (18–99)"});
+  // Age as ranges instead of numeric input
+  const age = el("select", {}, [
+    el("option", {value:""}, [text("Age range (select)")]),
+    el("option", {value:"18-24"}, [text("18–24")]),
+    el("option", {value:"25-34"}, [text("25–34")]),
+    el("option", {value:"35-44"}, [text("35–44")]),
+    el("option", {value:"45-54"}, [text("45–54")]),
+    el("option", {value:"55-64"}, [text("55–64")]),
+    el("option", {value:"65+"}, [text("65+")]),
+  ]);
+  
   const gender = el("select", {}, [
     el("option", {value:""}, [text("Gender (select)")]),
     el("option", {value:"woman"}, [text("Woman")]),
@@ -251,19 +261,18 @@ function renderDemographics(){
   ]);
 
   const next = button("Continue", ()=>{
-    const a = Number(age.value);
+    const a = age.value;
     const g = gender.value;
     const f = aiFamiliar.value;
 
-    if(!a || a<18 || a>99 || !g || !f){
-      // Show error without full re-render
+    if(!a || !g || !f){
       const existing = app.querySelector(".error");
       if(existing) existing.remove();
       app.appendChild(requiredError("Please answer all background questions to continue."));
       return;
     }
 
-    STATE.demographics = { age:a, gender:g, ai_familiarity:Number(f) };
+    STATE.demographics = { age_range: a, gender: g, ai_familiarity: Number(f) };
     STATE.step = "trial";
     STATE.idx = 0;
     render();
@@ -277,7 +286,6 @@ function renderTrial(){
   const app = getApp();
   const v = STATE.vignettes[STATE.idx];
 
-  // Get cached selections for this vignette
   const cached = hydrateSelections(v.id, v);
 
   const vignetteCard = card([
@@ -286,19 +294,17 @@ function renderTrial(){
     el("p", {}, [text(v.text)]),
   ]);
 
-  // Build question card with current selections
   const qCard = card([
     el("h2", {}, [text("Your judgments")]),
-    qLikert(PROMPTS.causalClin, "causalClin", cached.causalClin, v.id),
-    qLikert(PROMPTS.causalAI, "causalAI", cached.causalAI, v.id),
-    qLikert(PROMPTS.blameClin, "blameClin", cached.blameClin, v.id),
-    qLikert(PROMPTS.blameOrg, "blameOrg", cached.blameOrg, v.id),
-    qLikert(PROMPTS.cfClin, "cfClin", cached.cfClin, v.id),
-    qLikert(cfAltPromptFor(v), "cfAlt", cached.cfAlt, v.id),
+    qLikert(PROMPTS.causalClin, cached.causalClin, v.id),
+    qLikert(PROMPTS.causalAI, cached.causalAI, v.id),
+    qLikert(PROMPTS.blameClin, cached.blameClin, v.id),
+    qLikert(PROMPTS.blameOrg, cached.blameOrg, v.id),
+    qLikert(PROMPTS.cfClin, cached.cfClin, v.id),
+    qLikert(cfAltPromptFor(v), cached.cfAlt, v.id),
   ]);
 
   const next = button(STATE.idx === STATE.vignettes.length-1 ? "Finish" : "Next", ()=>{
-    // Re-check cached values
     const current = hydrateSelections(v.id, v);
     const allAnswered = [
       current.causalClin, 
@@ -343,13 +349,12 @@ function renderTrial(){
   app.appendChild(qCard);
   app.appendChild(card([next]));
 
-  function qLikert(prompt, cacheKey, selected, vid){
+  function qLikert(prompt, selected, vid){
     const block = el("div", {}, [
       el("div", {class:"question"}, [text(prompt)]),
       el("div", {class:"help"}, [text("1 = Not at all, 7 = Very much")]),
       likertRow(selected, (val)=>{
         cacheSelection(vid, prompt, val);
-        // Re-render to show selection
         render();
       })
     ]);
@@ -366,7 +371,6 @@ function renderDone(){
   ]);
   app.appendChild(c);
 
-  // Submission happens in submit.js
   window.__SUBMIT_STUDY__();
 }
 
